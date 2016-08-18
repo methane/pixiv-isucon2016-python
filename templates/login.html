@@ -4,7 +4,7 @@
   <h1>ログイン</h1>
 </div>
 
-{% set messages = get_flashed_messages() %}:w
+{% set messages = get_flashed_messages() %}
 {% if messages %}
 <div id="notice-message" class="alert alert-danger">
   {{ '\n'.join(messages) }}
