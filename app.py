@@ -161,7 +161,7 @@ def image_url(post):
 
 # endpoints
 
-app = flask.Flask()
+app = flask.Flask(__name__)
 
 @app.route('/initialize')
 def get_initialize():

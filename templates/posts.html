@@ -1,0 +1,8 @@
+{% extends 'layout.html' }
+{% block body %}
+<div class="isu-posts">
+  {% for post in posts %}
+  {% include 'post.html' %}
+  {% endfor %}
+</div>
+{% endblock %}
