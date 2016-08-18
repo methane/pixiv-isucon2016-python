@@ -50,11 +50,11 @@ class SessionInterface(SessionInterface):
                 response.delete_cookie(app.session_cookie_name,
                                        domain=domain)
             return
-        memcache_exp = self.get_redis_expiration_time(app, session)
+        memcache_exp = self.get_memcache_expiration_time(app, session)
         cookie_exp = self.get_expiration_time(app, session)
         val = json.dumps(dict(session))
         self.memcache.set(self.prefix + session.sid, val,
-                          int(redis_exp.total_seconds()))
+                          int(memcache_exp.total_seconds()))
         response.set_cookie(app.session_cookie_name, session.sid,
                             expires=cookie_exp, httponly=True,
                             domain=domain)

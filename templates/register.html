@@ -7,9 +7,9 @@
 {% set notice = get_flashed_messages() %}
 {% if notice %}
 <div id="notice-message" class="alert alert-danger">
-  {{ '\n'.join(notice) }
+    {{ '\n'.join(notice) }}
 </div>
-{% end %}
+{% endif %}
 
 <div class="submit">
   <form method="post" action="/register">

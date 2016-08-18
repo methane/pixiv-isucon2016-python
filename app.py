@@ -202,7 +202,7 @@ def post_login():
         return flask.redirect('/')
 
     flask.flash("アカウント名かパスワードが間違っています")
-    flask.redirect('/login')
+    return flask.redirect('/login')
 
 @app.route('/register')
 def get_register():
@@ -265,7 +265,7 @@ def get_user_list(account_name):
     posts = make_posts(cursor.fetchall())
 
     cursor.execute('SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = %s', (user['id'],))
-    comment_counts = cursor.fetch_one()['count']
+    comment_count = cursor.fetchone()['count']
 
     cursor.execute('SELECT `id` FROM `posts` WHERE `user_id` = %s', (user['id'],))
     post_ids = [p['id'] for p in cursor]
@@ -306,7 +306,7 @@ def get_posts_id(id):
         flask.abort(404)
 
     me = get_session_user()
-    return flask.render_template("post.html", post=posts[0], me=me)
+    return flask.render_template("post.html", posts=posts, me=me)
 
 @app.route('/', methods=['POST'])
 def post_index():

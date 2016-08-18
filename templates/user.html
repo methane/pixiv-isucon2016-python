@@ -6,5 +6,7 @@
   <div>コメント数 <span class="isu-comment-count">{{ comment_count }}</span></div>
   <div>被コメント数 <span class="isu-commented-count">{{ commented_count }}</span></div>
 </div>
-{% include 'posts.html' %}
+<div class="isu-posts">
+  {% include 'post.html' %}
+</div>
 {% endblock %}
