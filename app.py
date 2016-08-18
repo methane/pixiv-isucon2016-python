@@ -1,5 +1,6 @@
 import os
 import re
+import pathlib
 import subprocess
 import tempfile
 
@@ -25,10 +26,12 @@ def config():
                 "host": os.environ.get("ISUCONP_DB_HOST", 'localhost'),
                 "port": int(os.environ.get("ISUCONP_DB_PORT", "3306")),
                 "user": os.environ.get("ISUCONP_DB_USER", "root"),
-                "password": os.environ.get("ISUCONP_DB_PASSWORD"),
-                "database": os.environ.get("ISUCONP_DB_NAME", "isuconp"),
+                "db": os.environ.get("ISUCONP_DB_NAME", "isuconp"),
             },
         }
+        password = os.environ.get("ISUCONP_DB_PASSWORD")
+        if password:
+            _config['db']['passwd'] = password
     return _config
 
 
@@ -37,16 +40,11 @@ _db = None
 def db():
     global _db
     if _db is None:
-        conf = config()["db"]
-        _db = MySQLdb.connect(
-            host=conf["host"],
-            port=conf["port"],
-            user=conf["user"],
-            passwd=conf["password"],
-            charset="utf8mb4",
-            cursorclass=MySQLdb.cursors.DictCursor,
-            autocommit=True,
-        )
+        conf = config()["db"].copy()
+        conf['charset'] = 'utf8mb4'
+        conf['cursorclass'] = MySQLdb.cursors.DictCursor
+        conf['autocommit'] = True
+        _db = MySQLdb.connect(**conf)
     return _db
 
 
@@ -68,8 +66,7 @@ _mcclient = None
 def memcache():
     global _mcclient
     if _mcclient is None:
-        conf = 
-        _mcclient = MemcacheClient(no_delay=True, default_noreply=False)
+        _mcclient = MemcacheClient(('127.0.0.1', 11211), no_delay=True, default_noreply=False)
     return _mcclient
 
 
@@ -129,7 +126,7 @@ def make_posts(results, all_comments=False):
             query += ' LIMIT 3'
 
         cursor.execute(query, (post['id'],))
-        comments = cursor.fetchall()
+        comments = list(cursor)
         for comment in comments:
             cursor.execute("SELECT * FROM `users` WHERE `id` = %s", (comment['user_id'],))
             comment['user'] = cursor.fetchone()
@@ -137,7 +134,7 @@ def make_posts(results, all_comments=False):
         post['comments'] = comments
 
         cursor.execute("SELECT * FROM `users` WHERE `id` = %s", (post['user_id'],))
-        post['user'] = post.fetchone()
+        post['user'] = cursor.fetchone()
 
         if not post['user']['del_flg']:
             posts.append(post)
@@ -147,6 +144,14 @@ def make_posts(results, all_comments=False):
     return posts
 
 
+# app setup
+
+static_path = pathlib.Path(__file__).resolve().parent.parent / 'public'
+app = flask.Flask(__name__, static_folder=str(static_path), static_url_path='')
+#app.debug = True
+app.session_interface = pymc_session.SessionInterface(memcache())
+
+@app.template_global()
 def image_url(post):
     ext = ""
     mime = post['mime']
@@ -159,9 +164,20 @@ def image_url(post):
 
     return "/image/%s%s" % (post['id'], ext)
 
-# endpoints
+# http://flask.pocoo.org/snippets/28/
+from jinja2 import evalcontextfilter, Markup, escape
 
-app = flask.Flask(__name__)
+_paragraph_re = re.compile(r'(?:\r\n|\r|\n){2,}')
+
+@app.template_filter()
+@evalcontextfilter
+def nl2br(eval_ctx, value):
+    result = u'\n\n'.join(u'<p>%s</p>' % p.replace('\n', '<br>\n') \
+        for p in _paragraph_re.split(escape(value)))
+    if eval_ctx.autoescape:
+        result = Markup(result)
+
+# endpoints
 
 @app.route('/initialize')
 def get_initialize():
@@ -229,10 +245,10 @@ def get_index():
     me = get_session_user()
 
     cursor = db().cursor()
-    cursor.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC')
+    cursor.execute('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC')
     posts = make_posts(cursor.fetchall())
 
-    flask.render_template("index.html", posts=posts, me=me)
+    return flask.render_template("index.html", posts=posts, me=me)
 
 @app.route('/@<account_name>')
 def get_user_list(account_name):
@@ -402,3 +418,6 @@ def post_banned():
         cursor.execute(query, (1, id))
 
     return flask.redirect('/admin/banned')
+
+if __name__ == '__main__':
+    app.run(debug=True)
