@@ -37,6 +37,6 @@ $ venv/bin/pip install -r requirements.freeze
 ## デバッグモードで実行
 
 ```console
-$ venv/bin/python app.py -d
+$ FLASK_APP=app.py venv/bin/flask run -p 8080 --debugger
 ```
 
