@@ -1,3 +1,4 @@
+import datetime
 import os
 import re
 import pathlib
@@ -75,7 +76,7 @@ def try_login(account_name, password):
     cur.execute("SELECT * FROM users WHERE account_name = %s AND del_flg = 0", (account_name,))
     user = cur.fetchone()
 
-    if user and calculate_passhash(user["account_name"], password) == user["password"]:
+    if user and calculate_passhash(user["account_name"], password) == user["passhash"]:
         return user
     return None
 
@@ -238,7 +239,7 @@ def post_register():
 @app.route('/logout')
 def get_logout():
     flask.session.clear()
-    flask.redirect('/')
+    return flask.redirect('/')
 
 @app.route('/')
 def get_index():
@@ -285,10 +286,12 @@ def get_user_list(account_name):
 @app.route('/posts')
 def get_posts():
     cursor = db().cursor()
-
     max_created_at = flask.request.args['max_created_at'] or None
     if max_created_at:
-        cursor.execute('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC', (max_created_at,))
+        if '+' in max_created_at:
+            max_created_at = max_created_at[:max_created_at.find('+')]
+        datetime.datetime.strptime('max_created_at', '%Y-%m-%dT%H:%M:%S')
+        cursor.execute('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= %s ORDER BY `created_at` DESC', (max_created_at,))
     else:
         cursor.execute('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE ORDER BY `created_at` DESC')
     results = cursor.fetchall()
@@ -306,7 +309,7 @@ def get_posts_id(id):
         flask.abort(404)
 
     me = get_session_user()
-    return flask.render_template("post.html", posts=posts, me=me)
+    return flask.render_template("posts.html", posts=posts, me=me)
 
 @app.route('/', methods=['POST'])
 def post_index():
@@ -413,7 +416,7 @@ def post_banned():
         flask.abort(422)
 
     cursor = db().cursor()
-    query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = %s'
+    query = 'UPDATE `users` SET `del_flg` = %s WHERE `id` = %s'
     for id in flask.request.form.getlist('uid', type=int):
         cursor.execute(query, (1, id))
 
