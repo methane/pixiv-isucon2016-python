@@ -120,7 +120,7 @@ def make_posts(results, all_comments=False):
     for post in results:
         cursor.execute("SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = %s",
                        (post['id'],))
-        post['comment_count'] = cursor.fetchone()
+        post['comment_count'] = cursor.fetchone()['count']
     
         query = 'SELECT * FROM `comments` WHERE `post_id` = %s ORDER BY `created_at` DESC'
         if not all_comments:
