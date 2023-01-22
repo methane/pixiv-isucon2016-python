@@ -32,7 +32,7 @@ class SessionInterface(SessionInterface):
         return timedelta(days=1)
 
     def open_session(self, app, request):
-        sid = request.cookies.get(app.session_cookie_name)
+        sid = request.cookies.get(app.config["SESSION_COOKIE_NAME"])
         if not sid:
             sid = self.generate_sid()
             return Session(sid=sid, new=True)
@@ -47,7 +47,7 @@ class SessionInterface(SessionInterface):
         if not session:
             self.memcache.delete(self.prefix + session.sid)
             if session.modified:
-                response.delete_cookie(app.session_cookie_name,
+                response.delete_cookie(app.config["SESSION_COOKIE_NAME"],
                                        domain=domain)
             return
         memcache_exp = self.get_memcache_expiration_time(app, session)
@@ -55,6 +55,6 @@ class SessionInterface(SessionInterface):
         val = json.dumps(dict(session))
         self.memcache.set(self.prefix + session.sid, val,
                           int(memcache_exp.total_seconds()))
-        response.set_cookie(app.session_cookie_name, session.sid,
+        response.set_cookie(app.config["SESSION_COOKIE_NAME"], session.sid,
                             expires=cookie_exp, httponly=True,
                             domain=domain)
