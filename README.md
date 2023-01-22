@@ -16,7 +16,7 @@ AMI からのスタートでも、 リポジトリからのスタートでも、
 
 ```console
 $ cd private_isu/webapp
-$ git clone https://github.com/netmarkjp/pixiv-isucon2016-python python
+$ git clone https://github.com/methane/pixiv-isucon2016-python python
 $ cd python
 ```
 
